@@ -40,7 +40,7 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'DingDing webhook URL not configured' })
       };
     }
-
+    console.log('来自sentry请求体-sentryData: ', sentryData);
     // 构造钉钉消息内容
     const dingdingMessage = {
       msgtype: 'markdown',
@@ -58,7 +58,7 @@ exports.handler = async (event, context) => {
       timeout: 10000 // 10秒超时
     });
 
-    console.log('Message sent to DingDing successfully');
+    console.log('Message sent to DingDing successfully', response);
     
     return {
       statusCode: 200,
