@@ -40,7 +40,9 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'DingDing webhook URL not configured' })
       };
     }
-    console.log('来自sentry请求体-sentryData: ', sentryData);
+    
+    console.log('来自sentry请求体-sentryData: ', JSON.stringify(sentryData, null, 2));
+    
     // 构造钉钉消息内容
     const dingdingMessage = {
       msgtype: 'markdown',
@@ -58,7 +60,7 @@ exports.handler = async (event, context) => {
       timeout: 10000 // 10秒超时
     });
 
-    console.log('response', response);
+    console.log('钉钉响应:', response.status, response.data);
     
     return {
       statusCode: 200,
@@ -85,42 +87,71 @@ exports.handler = async (event, context) => {
 
 // 格式化Sentry消息为钉钉markdown格式
 function formatSentryMessage(sentryData) {
-  const {
-    environment = 'unknown',
-    project = { name: 'unknown' },
-    level = 'error',
-    datetime = new Date().toISOString(),
-    url = '#',
-    message = 'No message provided',
-    culprit = 'Unknown',
-    tags = {},
-    user = {}
-  } = sentryData;
-
+  // 根据Sentry webhook文档提取关键信息
+  const event = sentryData?.event || {};
+  const project = sentryData?.project || 'Unknown';
+  const level = sentryData?.level || 'info';
+  const url = sentryData?.url || '';
+  const datetime = sentryData?.datetime || new Date().toISOString();
+  
+  // 提取事件详情
+  const title = event?.title || event?.message || '未知错误';
+  const message = event?.message || '';
+  const environment = event?.environment || 'production';
+  const release = event?.release || '';
+  const user = event?.user || {};
+  const tags = event?.tags || {};
+  const request = event?.request || {};
+  const exception = event?.exception?.values?.[0] || {};
+  const stacktrace = exception?.stacktrace || {};
+  
   // 构建markdown消息
   let markdown = `## 🚨 Sentry 告警通知\n\n`;
   
+  // 基本信息
+  markdown += `**项目**: \`${project}\`\n`;
   markdown += `**环境**: \`${environment}\`\n`;
-  markdown += `**项目**: \`${project.name}\`\n`;
   markdown += `**级别**: \`${level.toUpperCase()}\`\n`;
   markdown += `**时间**: \`${new Date(datetime).toLocaleString('zh-CN')}\`\n`;
-  markdown += `**错误**: \`${culprit}\`\n\n`;
+  markdown += `**错误**: \`${title}\`\n\n`;
   
-  if (message) {
-    markdown += `**消息**: ${message}\n\n`;
+  // 错误消息
+  if (message && message !== title) {
+    markdown += `**消息**: \`${message}\`\n\n`;
   }
-
-  // 添加用户信息
-  if (user && (user.id || user.email || user.username)) {
+  
+  // 异常类型和值
+  if (exception.type || exception.value) {
+    markdown += `**异常详情**:\n`;
+    if (exception.type) markdown += `- 类型: \`${exception.type}\`\n`;
+    if (exception.value) markdown += `- 值: \`${exception.value}\`\n`;
+    markdown += `\n`;
+  }
+  
+  // 用户信息
+  if (user && (user.id || user.email || user.username || user.ip_address)) {
     markdown += `**用户信息**:\n`;
     if (user.id) markdown += `- ID: \`${user.id}\`\n`;
     if (user.email) markdown += `- 邮箱: \`${user.email}\`\n`;
     if (user.username) markdown += `- 用户名: \`${user.username}\`\n`;
+    if (user.ip_address) markdown += `- IP: \`${user.ip_address}\`\n`;
     markdown += `\n`;
   }
-
-  // 添加重要标签
-  const importantTags = ['release', 'version', 'browser', 'os', 'device'];
+  
+  // 请求信息
+  if (request.url || request.method) {
+    markdown += `**请求信息**:\n`;
+    if (request.method) markdown += `- 方法: \`${request.method}\`\n`;
+    if (request.url) markdown += `- URL: \`${request.url}\`\n`;
+    if (request.headers) {
+      const userAgent = request.headers['User-Agent'] || request.headers['user-agent'];
+      if (userAgent) markdown += `- User-Agent: \`${userAgent}\`\n`;
+    }
+    markdown += `\n`;
+  }
+  
+  // 重要标签
+  const importantTags = ['release', 'version', 'browser', 'os', 'device', 'transaction'];
   const relevantTags = Object.entries(tags)
     .filter(([key]) => importantTags.includes(key))
     .map(([key, value]) => `- ${key}: \`${value}\``)
@@ -129,8 +160,29 @@ function formatSentryMessage(sentryData) {
   if (relevantTags) {
     markdown += `**标签**:\n${relevantTags}\n\n`;
   }
-
-  markdown += `**[查看详情](${url})**`;
+  
+  // Release信息
+  if (release) {
+    markdown += `**Release**: \`${release}\`\n\n`;
+  }
+  
+  // 堆栈跟踪（如果有的话，只显示前几行）
+  if (stacktrace.frames && stacktrace.frames.length > 0) {
+    markdown += `**堆栈跟踪**:\n`;
+    const frames = stacktrace.frames.slice(-3); // 只显示最后3帧
+    frames.forEach((frame, index) => {
+      const filename = frame.filename || 'unknown';
+      const functionName = frame.function || 'anonymous';
+      const lineNo = frame.lineno || '?';
+      markdown += `- \`${filename}:${lineNo}\` in \`${functionName}\`\n`;
+    });
+    markdown += `\n`;
+  }
+  
+  // 查看详情链接
+  if (url) {
+    markdown += `**[查看详情](${url})**`;
+  }
 
   return markdown;
 } 
