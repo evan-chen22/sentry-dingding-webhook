@@ -58,7 +58,7 @@ exports.handler = async (event, context) => {
       timeout: 10000 // 10秒超时
     });
 
-    console.log('Message sent to DingDing successfully', response);
+    console.log('response', response);
     
     return {
       statusCode: 200,
