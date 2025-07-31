@@ -7,7 +7,9 @@ export interface SentryWebhookPayload {
     uuid: string;
   };
   data: {
-    error: SentryError;
+    error?: SentryError;
+    issue?: SentryIssue;
+    event?: SentryEvent;
   };
   actor: {
     type: 'user' | 'application' | 'sentry';
@@ -15,6 +17,103 @@ export interface SentryWebhookPayload {
     name: string;
   };
 }
+
+export interface SentryEvent {
+  event_id: string;
+  project: number;
+  release: string | null;
+  dist: string | null;
+  platform: string;
+  message: string;
+  datetime: string;
+  tags: Array<[string, string]>;
+  _dsc: Record<string, any>;
+  _meta: Record<string, any>;
+  _metrics: Record<string, any>;
+  _ref: number;
+  _ref_version: number;
+  breadcrumbs: Record<string, any>;
+  contexts: Record<string, any>;
+  culprit: string;
+  environment: string;
+  exception: Record<string, any>;
+  fingerprint: string[];
+  grouping_config: Record<string, any>;
+  hashes: Array<string>;
+  ingest_path: Array<{
+    version: string;
+    public_key: string;
+  }>;
+  key_id: string;
+  level: string;
+  location: string;
+  logger: string;
+  main_exception_id: number;
+  metadata: Record<string, any>;
+  nodestore_insert: number;
+  received: number;
+  request: Record<string, any>;
+  scraping_attempts: Array<{
+    details: string;
+    reason: string;
+    status: string;
+    url: string;
+  }>;
+  sdk: Record<string, any>;
+  symbolicated_in_app: boolean;
+  timestamp: number;
+  title: string;
+  transaction: string;
+  type: string;
+  user: Record<string, any>;
+  version: string;
+  url: string;
+  web_url: string;
+  issue_url: string;
+  issue_id: string;
+}
+
+// Sentry Issue 类型定义
+export interface SentryIssue {
+  url: string;
+  web_url: string;
+  project_url: string;
+  id: string;
+  shareId: string | null;
+  shortId: string;
+  title: string;
+  culprit: string;
+  permalink: string;
+  logger: string | null;
+  level: string;
+  status: string;
+  statusDetails: Record<string, any>;
+  substatus: string;
+  isPublic: boolean;
+  platform: string;
+  project: Record<string, any>;
+  type: string;
+  metadata: Record<string, any>;
+  numComments: number;
+  assignedTo: any | null;
+  isBookmarked: boolean;
+  isSubscribed: boolean;
+  subscriptionDetails: any | null;
+  hasSeen: boolean;
+  annotations: any[];
+  issueType: string;
+  issueCategory: string;
+  priority: string;
+  priorityLockedAt: string | null;
+  seerFixabilityScore: any | null;
+  seerAutofixLastTriggered: any | null;
+  isUnhandled: boolean;
+  count: string;
+  userCount: number;
+  firstSeen: string;
+  lastSeen: string;
+}
+
 
 export interface SentryError {
   event_id: string;
@@ -215,6 +314,9 @@ export interface SentryError {
   transaction: string;
   type: string;
   user: {
+    id: string;
+    email: string;
+    username: string;
     ip_address: string;
     sentry_user: string;
     geo: {

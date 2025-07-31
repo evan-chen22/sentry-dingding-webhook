@@ -51,7 +51,12 @@ interface SentryWebhookPayload {
     uuid: string;                    // 安装ID
   };
   data: {
-    error: SentryError;              // 错误详情
+    error?: SentryError;             // 错误详情
+    issue?: SentryIssue;             // 问题详情
+    event_alert?: SentryEventAlert;  // 事件告警
+    metric_alert?: SentryMetricAlert; // 指标告警
+    comment?: SentryComment;         // 评论
+    installation?: SentryInstallation; // 安装信息
   };
   actor: {
     type: 'user' | 'application' | 'sentry';

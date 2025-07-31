@@ -1,4 +1,4 @@
-import type { WebhookResponse } from '../../sentry-types';
+import type { WebhookResponse } from "../../sentry-types";
 /**
  * Netlify Function handler for Sentry webhook
  * @param event - Netlify function event
